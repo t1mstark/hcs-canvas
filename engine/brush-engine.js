@@ -1,0 +1,2 @@
+const kinds={glow:{a:0.08,r:16},liquid:{a:0.18,r:9},dust:{a:0.05,r:3},nebula:{a:0.07,r:22},noise:{a:0.03,r:12},spray:{a:0.1,r:2}};
+export function brushStroke(ctx,x,y,kind='glow',color='rgba(125,230,255,.8)'){const k=kinds[kind]||kinds.glow;ctx.globalAlpha=k.a;for(let i=0;i<30;i++){const a=Math.random()*Math.PI*2;const r=Math.random()*k.r;ctx.fillStyle=color;ctx.beginPath();ctx.arc(x+Math.cos(a)*r,y+Math.sin(a)*r,Math.random()*2+1,0,Math.PI*2);ctx.fill();}ctx.globalAlpha=1;}
