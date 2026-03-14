@@ -1,0 +1,1 @@
+export function setStatus(el,msg){el.textContent=msg;}
