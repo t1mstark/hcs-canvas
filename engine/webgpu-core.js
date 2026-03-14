@@ -1,0 +1,1 @@
+export async function detectWebGPU(){if(!navigator.gpu)return {supported:false};try{const adapter=await navigator.gpu.requestAdapter();if(!adapter)return {supported:false};const limits=adapter.limits||{};return {supported:true,limits,maxTextureDimension2D:limits.maxTextureDimension2D||0};}catch{return {supported:false};}}
