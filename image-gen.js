@@ -1,0 +1,2 @@
+export function proceduralGenerate(ctx,w,h,palette){const g=ctx.createLinearGradient(0,0,w,h);palette.colors.forEach((c,i)=>g.addColorStop(i/(palette.colors.length-1),c));ctx.fillStyle=g;ctx.fillRect(0,0,w,h);
+  for(let i=0;i<220;i++){ctx.globalAlpha=.06;ctx.fillStyle=palette.colors[i%palette.colors.length];ctx.beginPath();ctx.arc(Math.random()*w,Math.random()*h,Math.random()*80,0,Math.PI*2);ctx.fill();}ctx.globalAlpha=1;}
