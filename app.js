@@ -9,6 +9,7 @@ import { getPalette, MOODS } from './engine/color-engine.js';
 import { ModelManager } from './model-manager.js';
 import { applyProceduralEdit } from './image-edit.js';
 import { proceduralGenerate } from './image-gen.js';
+import { LocalImageGenerator } from './image-generator.js';
 import { loadSettings, saveSettings, readUploadFile } from './file-manager.js';
 import { exportPNG } from './export/export-image.js';
 import { mountToolbar } from './ui/toolbar.js';
@@ -25,6 +26,7 @@ const settings={mode:'Generate',mood:'Neon',zoom:1,rot:0,brush:'glow',...loadSet
 let palette=getPalette(settings.mood), t=0, quality=1;
 const particles=new ParticleSystem(); const rd=new ReactionDiffusion(); const life=new CellularLife();
 const mm=new ModelManager((s)=>setStatus(statusEl,`${s.loading?`Loading ${s.loading}… `:''}${s.ready?`Ready ${s.ready}${s.failed?' (fallback)':''} `:''}${s.device?`${s.device}/${s.tier}`:''}`)); await mm.init();
+const imgGen = new LocalImageGenerator(mm);
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(()=>{});
 
 function render(){t+=0.016;const w=innerWidth,h=innerHeight;ctx.fillStyle='rgba(10,13,22,.12)';ctx.fillRect(0,0,w,h);
@@ -40,8 +42,21 @@ mountToolbar(toolbar, async (tool,meta={})=>{
   settings.mode=tool;
   if(meta.advanced){if(tool==='Color'){settings.mood=MOODS[(MOODS.indexOf(settings.mood)+1)%MOODS.length];palette=getPalette(settings.mood);} return;}
   if(tool==='Reset'){ctx.clearRect(0,0,innerWidth,innerHeight);particles.items.length=0;return;}
+  if(tool==='Generate'){
+    const p=makePanel(host,'Image Generator',`<textarea id='gprompt' rows='2' placeholder='z.B. glowing ocean nebula with soft motion'></textarea><div class='row'><button id='gobtn'>Generate</button><button id='gvar'>Remix</button></div><small>WebGPU lokal wenn möglich, sonst prozeduraler Fallback.</small><div id='gout'></div>`);
+    const run = async (seed='') => {
+      const prompt = p.querySelector('#gprompt').value || seed || 'abstract colorful fluid art';
+      p.querySelector('#gout').textContent = 'Generiere lokal…';
+      const res = await imgGen.generate({ prompt, ctx, w: innerWidth, h: innerHeight, palette });
+      p.querySelector('#gout').textContent = `Fertig (${res.mode}).`;
+    };
+    p.querySelector('#gobtn').onclick=()=>run();
+    p.querySelector('#gvar').onclick=()=>run('remix with more contrast and cosmic glow');
+    return;
+  }
+
   if(tool==='AI Assist'){
-    const p=makePanel(host,'AI Assist',`<div class='row'><button id='name'>Name</button><button id='palette'>Palette</button></div><div class='row'><button id='mood'>Mood</button><button id='remix'>Remix</button></div><div class='row'><button id='next'>Next Tool</button><button id='describe'>Describe</button></div><small>Short, playful, local helper.</small><div id='aiout'></div>`);
+    const p=makePanel(host,'AI Assist',`<div class='row'><button id='name'>Name</button><button id='palette'>Palette</button></div><div class='row'><button id='mood'>Mood</button><button id='remix'>Remix</button></div><div class='row'><button id='next'>Next Tool</button><button id='describe'>Describe</button></div><div class='row'><button id='editTips'>Edit Tips</button><button id='crop'>Crop Idea</button></div><small>Short, playful, local helper.</small><div id='aiout'></div>`);
     const outEl = p.querySelector('#aiout');
     const run = async (prompt, fallback) => {
       const m = await mm.load('text');
@@ -65,6 +80,8 @@ mountToolbar(toolbar, async (tool,meta={})=>{
         outEl.innerHTML = '<p>Could not analyze image now. Try again after model load.</p>';
       }
     };
+    p.querySelector('#editTips').onclick=()=>run('Suggest one-line edit tips: contrast, color, composition.','Boost contrast 10%, cool shadows, crop tighter center.');
+    p.querySelector('#crop').onclick=()=>run('Suggest best crop in one line for abstract image.','Try 4:5 crop around brightest flow center.');
     return;
   }
   if(tool==='Upload'){
